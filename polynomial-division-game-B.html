@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>麵包盒任務：多項式除法（B 版・結構型遊戲化）</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"Noto Sans TC","Microsoft JhengHei",sans-serif;background:linear-gradient(180deg,#052e22,#134e3a);color:#fff;min-height:100vh;padding:20px}
+.container{max-width:720px;margin:0 auto}
+header{text-align:center;margin-bottom:14px}
+header h1{font-size:1.5rem;margin-bottom:4px}
+header p{color:#a7f3d0;font-size:.9rem}
+.badge{display:inline-block;background:#065f46;border:1px solid #34d399;border-radius:999px;padding:4px 14px;font-size:.8rem;margin-top:6px;color:#d1fae5}
+.progress{display:flex;gap:4px;margin-bottom:14px}
+.pstep{flex:1;text-align:center;font-size:.68rem;color:#6ee7b7;background:#064e3b;border-radius:8px;padding:6px 2px;opacity:.45}
+.pstep.done{opacity:1;background:#059669;color:#fff}
+.pstep.now{opacity:1;background:#f59e0b;color:#1f2937;font-weight:800}
+.card{background:#fff;color:#1f2937;border-radius:16px;padding:20px;box-shadow:0 8px 24px rgba(0,0,0,.35);margin-bottom:16px}
+.card h2{font-size:1.15rem;margin-bottom:10px}
+.card p{line-height:1.8}
+.story{background:#ecfdf5;border:1px solid #6ee7b7;border-radius:12px;padding:12px 14px;line-height:1.8;margin-bottom:12px}
+.orders{display:grid;gap:10px;margin-top:12px}
+.order{border:2px solid #e5e7eb;border-radius:12px;padding:12px 14px;cursor:pointer;background:#f9fafb;text-align:left;width:100%;color:#111827}
+.order:hover{border-color:#059669}
+.order.sel{border-color:#059669;background:#d1fae5}
+.order b{font-size:1.05rem}
+.tiles{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+.tile{background:#f3f4f6;border-radius:10px;padding:8px 12px;font-size:.9rem;font-weight:700}
+.stepper{display:flex;align-items:center;gap:12px;margin:10px 0;background:#f9fafb;border-radius:12px;padding:10px 14px}
+.stepper button{width:40px;height:40px;font-size:1.3rem;border-radius:10px;background:#059669;color:#fff}
+.stepper .val{font-size:1.2rem;font-weight:900;min-width:60px;text-align:center}
+.expand{background:#1f2937;color:#a7f3d0;border-radius:12px;padding:12px 14px;font-family:monospace;font-size:1rem;margin:10px 0;line-height:1.8}
+.fillrow{display:flex;gap:8px;align-items:center;margin:10px 0;flex-wrap:wrap;font-size:1.05rem;font-weight:700}
+.fillrow input{width:110px;padding:10px;border:2px solid #d1d5db;border-radius:10px;font-size:1.05rem;text-align:center}
+.fillrow input.ok{border-color:#22c55e;background:#dcfce7}
+.fillrow input.no{border-color:#ef4444;background:#fee2e2}
+.hintbox{margin-top:10px;border-radius:12px;padding:12px 14px;font-size:.93rem;line-height:1.7;display:none}
+.hintbox.show{display:block}
+.hintbox.probe{background:#fef9c3;color:#713f12}
+.hintbox.good{background:#dcfce7;color:#14532d}
+.hintbox.bad{background:#fee2e2;color:#7f1d1d}
+.hintbox.info{background:#e0e7ff;color:#1e3a8a}
+.btnrow{display:flex;gap:10px;margin-top:14px}
+button{cursor:pointer;border:none;border-radius:12px;padding:12px 20px;font-size:1rem;font-weight:800}
+.btn-primary{background:#059669;color:#fff;flex:1}
+.btn-primary:hover{background:#047857}
+.btn-primary:disabled{background:#9ca3af;cursor:not-allowed}
+.btn-ghost{background:#e5e7eb;color:#374151}
+.hidden{display:none!important}
+.stepcard{border:2px solid #e5e7eb;border-radius:12px;padding:12px 14px;margin:8px 0;cursor:pointer;background:#f9fafb;width:100%;text-align:left;color:#111827;font-size:.95rem;line-height:1.8}
+.stepcard:hover{border-color:#f59e0b}
+.stepcard.picked-bad{border-color:#ef4444;background:#fee2e2}
+.stepcard.picked-good{border-color:#22c55e;background:#dcfce7}
+table.log{width:100%;border-collapse:collapse;margin-top:10px;font-size:.9rem}
+table.log th,table.log td{padding:8px;border-bottom:1px solid #e5e7eb;text-align:left}
+table.log th{background:#f3f4f6}
+.cert{background:#fffbeb;border:2px solid #f59e0b;border-radius:14px;padding:16px;margin-top:12px;line-height:1.9}
+textarea{width:100%;min-height:80px;padding:10px 12px;border:1.5px solid #d1d5db;border-radius:10px;font-size:.95rem;margin-top:8px}
+.note{font-size:.82rem;color:#6b7280;line-height:1.7;margin-top:10px}
+audio{width:100%;margin-top:8px}
+.backlink{font-size:.85rem;color:#059669;cursor:pointer;text-decoration:underline;margin-top:10px;display:inline-block}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>🍞 麵包盒任務：多項式除法</h1>
+<p>B 版・結構型遊戲化：沒有分數，沒有排名，沒有計時</p>
+<span class="badge">失敗不扣分・錯了退回重練・AI 給提示不給答案</span>
+</header>
+<div class="progress" id="progress"></div>
+
+<!-- 第0站 真實任務 -->
+<div class="card screen" id="s0">
+<h2>📦 第0站・真實任務：麵包店的包裝盒</h2>
+<div class="story">社區麵包店要訂做長方形包裝盒。老闆只知道<b>盒底面積</b>和<b>寬</b>，請你算出<b>長</b>，工廠才能裁紙。選一張訂單開始工作：</div>
+<div class="orders" id="orderList"></div>
+<label style="font-weight:700;display:block;margin-top:10px">你的姓名／座號：</label>
+<input id="bName" placeholder="例：王小明 12" maxlength="20" style="width:100%;padding:10px 12px;border:1.5px solid #d1d5db;border-radius:10px;font-size:1rem;margin:8px 0">
+<div class="btnrow"><button class="btn-primary" id="goExplore" disabled>接下訂單，開始探索 ➜</button></div>
+</div>
+
+<!-- 第1站 探索拼圖 -->
+<div class="card screen hidden" id="s1">
+<h2>🧩 第1站・探索：用磁磚拼出面積</h2>
+<div class="story" id="exploreStory"></div>
+<p>倉庫有三種磁磚：🟪 x²、🟦 x、🟨 1。目標面積的組成：</p>
+<div class="tiles" id="tileBox"></div>
+<p>寬已經固定是 <b id="widthShow"></b>。調整「長」的組成，讓拼出來的面積跟訂單一模一樣：</p>
+<div class="stepper"><span>長裡面 x 有</span><button id="lxMinus">−</button><span class="val" id="lxVal">1</span><span>個</span></div>
+<div class="stepper"><span>長裡面 1 有</span><button id="lcMinus">−</button><span class="val" id="lcVal">1</span><span>個</span><button id="lcPlus">＋</button></div>
+<div class="expand" id="expandShow"></div>
+<div class="hintbox" id="fb1"></div>
+<div class="btnrow">
+<button class="btn-ghost" id="hint1">💡 要提示</button>
+<button class="btn-primary" id="check1">檢查拼圖</button>
+</div>
+<div class="btnrow hidden" id="next1row"><button class="btn-primary" id="go1">拼出來了！下一站 ➜</button></div>
+<span class="backlink" data-go="0">← 回任務看看</span>
+</div>
+
+<!-- 第2站 挑戰一 分配 -->
+<div class="card screen hidden" id="s2">
+<h2>⚔️ 第2站・挑戰一：分配律拆分</h2>
+<div class="story">小訂單來了：<b>(2x²＋4x) ÷ 2x</b>。把每一項分別除以 2x：</div>
+<div class="fillrow">商 ＝ <input id="d1" placeholder="第一項"> ＋ <input id="d2" placeholder="第二項"></div>
+<div class="hintbox" id="fb2"></div>
+<div class="btnrow">
+<button class="btn-ghost" id="hint2">💡 要提示</button>
+<button class="btn-primary" id="check2">檢查</button>
+</div>
+<div class="btnrow hidden" id="next2row"><button class="btn-primary" id="go2">過關！下一站 ➜</button></div>
+<span class="backlink" data-go="1">← 回拼圖看看</span>
+</div>
+
+<!-- 第3站 挑戰二 補零 -->
+<div class="card screen hidden" id="s3">
+<h2>⚔️ 第3站・挑戰二：缺項補零</h2>
+<div class="story">大魔王題：<b>(x²－1) ÷ (x＋1)</b>。x² 後面直接跳到常數項，中間好像少了什麼…</div>
+<div class="fillrow">第1步・補項：x² ＋ <input id="m1" placeholder="補什麼？"> －1</div>
+<div class="fillrow">第2步・商 ＝ <input id="m2" placeholder="商是？"></div>
+<div class="hintbox" id="fb3"></div>
+<div class="btnrow">
+<button class="btn-ghost" id="hint3">💡 要提示</button>
+<button class="btn-primary" id="check3">檢查</button>
+</div>
+<div class="btnrow hidden" id="next3row"><button class="btn-primary" id="go3">過關！下一站 ➜</button></div>
+<span class="backlink" data-go="2">← 回上一站看看</span>
+</div>
+
+<!-- 第4站 挑戰三 找錯 -->
+<div class="card screen hidden" id="s4">
+<h2>⚔️ 第4站・挑戰三：學徒的直式哪裡錯？</h2>
+<div class="story">學徒算 <b>(x²＋3x＋2) ÷ (x＋1)</b>，寫下直式卻得到「商 x＋1，餘式 0」。點出他出錯的步驟：</div>
+<button class="stepcard" data-step="0">步驟① 首項相除：x² ÷ x ＝ x</button>
+<button class="stepcard" data-step="1">步驟② 相乘相減：(x＋1) × x ＝ x²＋x，相減剩下 2x＋2</button>
+<button class="stepcard" data-step="2">步驟③ 第二項：2x ÷ x ＝ 1，所以商是 x＋1，整除，餘式 0</button>
+<div class="hintbox" id="fb4"></div>
+<div id="findBlanks" class="hidden">
+<p style="margin-top:10px">抓到錯誤了！寫下正確答案，用驗算證明：</p>
+<div class="fillrow">正確商 ＝ <input id="f1" placeholder="商是？"></div>
+<div class="fillrow">驗算展開：(商)(x＋1) 的 x² 係數 <input id="f2a" style="width:70px" placeholder="?">，x 係數 <input id="f2b" style="width:70px" placeholder="?">，常數 <input id="f2c" style="width:70px" placeholder="?"></div>
+<div class="btnrow"><button class="btn-primary" id="check4b">檢查驗算</button></div>
+</div>
+<div class="btnrow"><button class="btn-ghost" id="hint4">💡 要提示</button></div>
+<div class="btnrow hidden" id="next4row"><button class="btn-primary" id="go4">修好了！去留證據 ➜</button></div>
+<span class="backlink" data-go="3">← 回上一站看看</span>
+</div>
+
+<!-- 第5站 證據 -->
+<div class="card screen hidden" id="s5">
+<h2>📜 第5站・證據：留下你的思考</h2>
+<p>每位麵包師傅都要留下工作紀錄。這是你的闖關歷程（自動記錄）：</p>
+<table class="log"><thead><tr><th>站別</th><th>嘗試</th><th>提示</th><th>狀態</th></tr></thead><tbody id="logBody"></tbody></table>
+<p style="margin-top:12px">用一句話說說：<b>你是怎麼確定答案是對的？</b>（打字或錄音，至少留一種）</p>
+<textarea id="reflect" placeholder="例：我用商乘以除式再展開，跟被除式一樣，所以確定對了。"></textarea>
+<div id="recZone" style="margin-top:10px">
+<button class="btn-ghost" id="btnRec">🎤 開始錄音</button>
+<audio id="audioPlay" controls class="hidden"></audio>
+</div>
+<p class="note" id="recNote"></p>
+<div class="hintbox" id="fb5"></div>
+<div class="btnrow"><button class="btn-primary" id="btnCert" disabled>領取完工證書 🎓</button></div>
+<p class="note" id="upStatusB"></p>
+<div id="certZone" class="hidden">
+<div class="cert">
+<div style="font-size:1.2rem;font-weight:900">🎓 麵包盒完工證書</div>
+<div id="certBody" style="margin-top:8px"></div>
+</div>
+<p class="note">※ B 版評的是過程證據：降冪排列、缺項補零、餘式次數判斷、乘法驗算——剛好對應四個學習表現。跟 A 版的分數排名比一比：同一批母題，兩種遊戲量到的東西完全不一樣。</p>
+<div class="btnrow"><button class="btn-ghost" id="btnRestart">🔁 換一張訂單重玩</button></div>
+</div>
+</div>
+</div>
+
+<script>
+var ORDERS=[
+ {t:"🍓 草莓盒",a2:1,a1:5,a0:6,wc:2,lx:1,lc:3,desc:"面積 x²＋5x＋6，寬 x＋2"},
+ {t:"🍫 巧克力盒",a2:1,a1:4,a0:3,wc:3,lx:1,lc:1,desc:"面積 x²＋4x＋3，寬 x＋3"},
+ {t:"🍍 綜合盒",a2:2,a1:5,a0:2,wc:2,lx:2,lc:1,desc:"面積 2x²＋5x＋2，寬 x＋2"}
+];
+var STEPS=["真實任務","探索拼圖","挑戰一·分配","挑戰二·補零","挑戰三·找錯","證據完成"];
+var sel=-1, passed=[false,false,false,false,false,false];
+var ex={lx:1,lc:1,att:0,hint:0};
+var rec={dist:{att:0,hint:0},miss:{att:0,hint:0},find:{att:0,hint:0},findStep:false};
+var hasAudio=false;
+var SB_URL="https://mbhdtwxmhxsaxwosjnrw.supabase.co";
+var SB_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iaGR0d3htaHhzYXh3b3NqbnJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzMzIwMTEsImV4cCI6MjA5ODkwODAxMX0.UyhFIDVD30Qc3kzU4SnkQIpLLCPkREjz3ptQkoa300c";
+function sbPost(table,row,ret){
+  return fetch(SB_URL+"/rest/v1/"+table,{method:"POST",headers:{"apikey":SB_ANON,"Authorization":"Bearer "+SB_ANON,"Content-Type":"application/json","Prefer":ret?"return=representation":"return=minimal"},body:JSON.stringify(row)}).then(function(r){if(!r.ok)throw new Error("db"+r.status);return ret?r.json():null;});
+}
+function uploadB(){
+  var st=$("upStatusB");st.textContent="☁️ 歷程上傳中…";
+  var o=ORDERS[sel];
+  var sess={game_version:"B",player_name:($("bName").value.trim()||"B版玩家"),order_id:o.t,reflection_text:$("reflect").value.trim().slice(0,500),has_audio:false};
+  sbPost("game_sessions",sess,true).then(function(rows){
+    var sid=rows[0].id;
+    var evs=[["探索拼圖",ex.att,ex.hint],["挑戰一·分配",rec.dist.att,rec.dist.hint],["挑戰二·補零",rec.miss.att,rec.miss.hint],["挑戰三·找錯",rec.find.att,rec.find.hint]].map(function(r){return{session_id:sid,station:r[0],attempts:r[1],hints:r[2],status:status(r[1],r[2])};});
+    return sbPost("game_events",evs,false);
+  }).then(function(){st.textContent="☁️ 歷程已上傳到資料庫";},function(){st.textContent="⚠️ 未連上資料庫（離線或網路問題），紀錄只留本頁。";});
+}
+
+function $(id){return document.getElementById(id);}
+function norm(s){return String(s).trim().replace(/＋/g,"+").replace(/－/g,"-").replace(/—/g,"-").replace(/×/g,"").replace(/\*/g,"").replace(/ /g,"").replace(/X/g,"x");}
+function fmt(a2,a1,a0){var s="";if(a2){s+=(a2===1?"x²":(a2===-1?"-x²":a2+"x²"));}if(a1){var t=(Math.abs(a1)===1?"x":Math.abs(a1)+"x");if(s){s+=(a1>0?"+":"-")+t;}else{s=(a1>0?"":"-")+t;}}if(a0){if(s){s+=(a0>0?"+":"-")+Math.abs(a0);}else{s=""+a0;}}return s||"0";}
+function fb(id,cls,html){var e=$(id);e.className="hintbox show "+cls;e.innerHTML=html;}
+function markInput(id,ok){$(id).className="";$(id).classList.add(ok?"ok":"no");}
+function status(att,hint){return (att<=1&&hint===0)?"一次通過":"重練 "+(att-1)+" 次後通過";}
+
+function renderProgress(now){
+  var p=$("progress");p.innerHTML="";
+  for(var i=0;i<STEPS.length;i++){
+    var d=document.createElement("div");d.className="pstep";
+    if(passed[i])d.classList.add("done");
+    if(i===now)d.classList.add("now");
+    d.textContent=(passed[i]?"✓ ":"")+STEPS[i];p.appendChild(d);
+  }
+}
+function go(i){
+  var ss=document.querySelectorAll(".screen");
+  for(var k=0;k<ss.length;k++)ss[k].classList.add("hidden");
+  $("s"+i).classList.remove("hidden");renderProgress(i);
+  window.scrollTo(0,0);
+}
+var backs=document.querySelectorAll(".backlink");
+for(var bi=0;bi<backs.length;bi++){backs[bi].onclick=function(){go(parseInt(this.getAttribute("data-go")));};}
+
+/* 第0站 */
+(function(){
+  var box=$("orderList");
+  for(var i=0;i<ORDERS.length;i++){
+    (function(i){
+      var b=document.createElement("button");b.className="order";
+      b.innerHTML="<b>"+ORDERS[i].t+"</b><br>"+ORDERS[i].desc;
+      b.onclick=function(){
+        sel=i;var all=box.children;
+        for(var k=0;k<all.length;k++)all[k].classList.remove("sel");
+        b.classList.add("sel");$("goExplore").disabled=false;
+      };
+      box.appendChild(b);
+    })(i);
+  }
+})();
+$("goExplore").onclick=function(){passed[0]=true;setupExplore();go(1);};
+
+/* 第1站 探索 */
+function setupExplore(){
+  var o=ORDERS[sel];ex={lx:1,lc:1,att:0,hint:0};
+  $("exploreStory").innerHTML="你接到<b>"+o.t+"</b>："+o.desc+"。長是多少？先用磁磚拼拼看——除法就是乘法的逆運算！";
+  $("tileBox").innerHTML="<span class='tile'>🟪 x² × "+o.a2+"</span><span class='tile'>🟦 x × "+o.a1+"</span><span class='tile'>🟨 1 × "+o.a0+"</span>";
+  $("widthShow").textContent="x＋"+o.wc;
+  $("lxVal").textContent="1";$("lcVal").textContent="1";
+  $("next1row").classList.add("hidden");updateExpand();
+}
+function updateExpand(){
+  var o=ORDERS[sel];
+  var e2=ex.lx,e1=ex.lc+o.wc*ex.lx,e0=o.wc*ex.lc;
+  $("expandShow").innerHTML="(x＋"+o.wc+")(長) 展開＝ "+fmt(e2,e1,e0)+"<br>訂單目標＝ "+fmt(o.a2,o.a1,o.a0);
+}
+$("lxMinus").onclick=function(){ex.lx=Math.max(0,ex.lx-1);if(ex.lx<1)ex.lx=1;$("lxVal").textContent=ex.lx;updateExpand();};
+$("lcMinus").onclick=function(){ex.lc=Math.max(0,ex.lc-1);$("lcVal").textContent=ex.lc;updateExpand();};
+$("lcPlus").onclick=function(){ex.lc=Math.min(9,ex.lc+1);$("lcVal").textContent=ex.lc;updateExpand();};
+$("hint1").onclick=function(){
+  var o=ORDERS[sel];ex.hint++;
+  if(ex.hint===1)fb("fb1","probe","💡 線索：x² 磁磚有 "+o.a2+" 塊，長裡面的 x 有幾個，跟它脫不了關係。");
+  else fb("fb1","probe","💡 線索：常數是兩邊常數相乘："+o.wc+" × ? ＝ "+o.a0+"，想想 ? 是多少。");
+};
+$("check1").onclick=function(){
+  var o=ORDERS[sel];ex.att++;
+  var e2=ex.lx,e1=ex.lc+o.wc*ex.lx,e0=o.wc*ex.lc;
+  if(e2===o.a2&&e1===o.a1&&e0===o.a0){
+    passed[1]=true;fb("fb1","good","🎉 拼出來了！長是 <b>"+fmt(0,ex.lx,ex.lc)+"</b>。你剛剛做的就是除法："+fmt(o.a2,o.a1,o.a0)+" ÷ (x＋"+o.wc+") ＝ "+fmt(0,ex.lx,ex.lc)+"。");
+    $("next1row").classList.remove("hidden");
+  }else if(e2!==o.a2){
+    fb("fb1","bad","🔍 x² 的個數對不上（退回重拼，不扣分）。想想：長裡面該有幾個 x？");
+  }else if(e0!==o.a0){
+    fb("fb1","bad","🔍 常數對不上（退回重拼，不扣分）。"+o.wc+" × ? 才會等於 "+o.a0+"？");
+  }else{
+    fb("fb1","bad","🔍 x 的個數對不上（退回重拼，不扣分）。展開後 x 的係數應該是 "+o.a1+"，你拼出 "+e1+"。");
+  }
+};
+$("go1").onclick=function(){go(2);};
+
+/* 第2站 分配 */
+$("hint2").onclick=function(){
+  rec.dist.hint++;
+  if(rec.dist.hint===1)fb("fb2","probe","💡 線索：每一項分別除以 2x，第一項先看 2x² ÷ 2x。");
+  else fb("fb2","probe","💡 線索：2x² ÷ 2x，係數 2÷2，x²÷x 剩幾個 x？第二項 4x÷2x 呢？");
+};
+$("check2").onclick=function(){
+  rec.dist.att++;
+  var a=norm($("d1").value),b=norm($("d2").value);
+  var okA=(a==="x"),okB=(b==="2"||b==="+2");
+  markInput("d1",okA);markInput("d2",okB);
+  if(okA&&okB){passed[2]=true;fb("fb2","good","🎉 正確！(2x²＋4x) ÷ 2x ＝ x＋2。分配律就是每一項各除一次。");$("next2row").classList.remove("hidden");}
+  else if(!okA){fb("fb2","bad","🔍 第一項再想想（退回重填，不扣分）：2x² ÷ 2x，係數除係數、x² 除以 x。");}
+  else{fb("fb2","bad","🔍 第二項再想想（退回重填，不扣分）：4x ÷ 2x 等於多少？");}
+};
+$("go2").onclick=function(){go(3);};
+
+/* 第3站 補零 */
+$("hint3").onclick=function(){
+  rec.miss.hint++;
+  if(rec.miss.hint===1)fb("fb3","probe","💡 線索：x² 後面直接跳到 －1，中間的一次項去哪了？先把它補回來再做直式。");
+  else fb("fb3","probe","💡 線索：補上 0x 之後，直式第一步 x²÷x＝x，用 (x＋1)×x 相乘相減繼續做。");
+};
+$("check3").onclick=function(){
+  rec.miss.att++;
+  var a=norm($("m1").value),b=norm($("m2").value);
+  var okA=(a==="0x"),okB=(b==="x-1");
+  markInput("m1",okA);markInput("m2",okB);
+  if(okA&&okB){passed[3]=true;fb("fb3","good","🎉 完整答對！缺項補 0x 是關鍵，商是 x－1。驗算：(x＋1)(x－1)＝x²－1 ✓。");$("next3row").classList.remove("hidden");}
+  else if(!okA){fb("fb3","bad","🔍 補項不對（退回重填，不扣分）：一次項憑空消失了，補上「0x」佔位，直式才排得整齊。");}
+  else{fb("fb3","bad","🔍 商不對（退回重填，不扣分）：用乘法驗算檢查——你的答案乘以 (x＋1)，展開等於 x²－1 嗎？注意符號！");}
+};
+$("go3").onclick=function(){go(4);};
+
+/* 第4站 找錯 */
+var stepBtns=document.querySelectorAll(".stepcard");
+for(var si=0;si<stepBtns.length;si++){stepBtns[si].onclick=function(){pickStep(parseInt(this.getAttribute("data-step")),this);};}
+function pickStep(i,el){
+  rec.find.att++;
+  if(i===2){
+    rec.findStep=true;
+    for(var k=0;k<stepBtns.length;k++){stepBtns[k].classList.remove("picked-bad");}
+    el.classList.add("picked-good");
+    fb("fb4","good","🎯 抓到了！步驟③的第二項應該是 2 不是 1。繼續把正確商和驗算寫完，證明你修好了它。");
+    $("findBlanks").classList.remove("hidden");
+  }else{
+    el.classList.add("picked-bad");
+    fb("fb4","bad","🔍 那一步沒問題（退回重找，不扣分）。提示：拿他的答案去驗算——(x＋1)(x＋1)＋0 展開，等於被除式 x²＋3x＋2 嗎？");
+  }
+}
+$("hint4").onclick=function(){
+  rec.find.hint++;
+  if(rec.find.hint===1)fb("fb4","probe","💡 線索：一步一步驗算他的直式，最後把他寫的商和餘式拿去「商×除＋餘」檢查。");
+  else fb("fb4","probe","💡 線索：(x＋1)(x＋1)＝x²＋2x＋1，跟被除式 x²＋3x＋2 差多少？出錯的就是那一步。");
+};
+$("check4b").onclick=function(){
+  rec.find.att++;
+  var a=norm($("f1").value);
+  var b=norm($("f2a").value),c=norm($("f2b").value),d=norm($("f2c").value);
+  var okA=(a==="x+2"),okB=(b==="1"&&c==="3"&&d==="2");
+  markInput("f1",okA);markInput("f2a",b==="1");markInput("f2b",c==="3");markInput("f2c",d==="2");
+  if(okA&&okB){passed[4]=true;fb("fb4","good","🎉 修好了！正確商 x＋2，驗算 (x＋2)(x＋1)＝x²＋3x＋2 ✓。找錯＋驗算就是數學家的除錯能力。");$("next4row").classList.remove("hidden");}
+  else if(!okA){fb("fb4","bad","🔍 商還不對（退回重填）：2x ÷ x 等於多少？商的第二項應該是什麼？");}
+  else{fb("fb4","bad","🔍 驗算展開不對（退回重填）：(x＋2)(x＋1) 用分配律一項一項乘，x²、x、常數各是多少？");}
+};
+$("go4").onclick=function(){buildLog();go(5);};
+
+/* 第5站 證據 */
+function buildLog(){
+  var rows=[["探索拼圖",ex.att,ex.hint],["挑戰一·分配",rec.dist.att,rec.dist.hint],["挑戰二·補零",rec.miss.att,rec.miss.hint],["挑戰三·找錯",rec.find.att,rec.find.hint]];
+  var tb=$("logBody");tb.innerHTML="";
+  for(var i=0;i<rows.length;i++){
+    var tr=document.createElement("tr");
+    tr.innerHTML="<td>"+rows[i][0]+"</td><td>"+rows[i][1]+" 次</td><td>"+rows[i][2]+" 次</td><td>"+status(rows[i][1],rows[i][2])+"</td>";
+    tb.appendChild(tr);
+  }
+}
+$("reflect").oninput=checkCert;
+function checkCert(){
+  var t=$("reflect").value.trim().length>0;
+  $("btnCert").disabled=!(t||hasAudio);
+  if(!t&&!hasAudio)fb("fb5","info","ℹ️ 打字或錄音至少留一種證據，才能領證書喔。");
+  else{$("fb5").className="hintbox";}
+}
+var mediaRec=null,chunks=[];
+try{
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+    $("recZone").style.display="none";$("recNote").textContent="此瀏覽器不支援錄音，請用文字寫下心得。";
+  }
+}catch(e){$("recZone").style.display="none";}
+$("btnRec").onclick=function(){
+  if(mediaRec&&mediaRec.state==="recording"){mediaRec.stop();return;}
+  var self=this;
+  navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+    chunks=[];mediaRec=new MediaRecorder(stream);
+    mediaRec.ondataavailable=function(e){chunks.push(e.data);};
+    mediaRec.onstop=function(){
+      var blob=new Blob(chunks,{type:"audio/webm"});
+      var url=URL.createObjectURL(blob);
+      var ap=$("audioPlay");ap.src=url;ap.classList.remove("hidden");
+      hasAudio=true;checkCert();
+      self.textContent="🎤 重新錄音";
+      fb("fb5","good","🎙️ 語音證據已留下，可以播放檢查。");
+    };
+    mediaRec.start();self.textContent="⏹ 停止錄音";
+  }).catch(function(){
+    fb("fb5","bad","⚠️ 無法使用麥克風（權限或環境限制），請改用文字心得，一樣算證據。");
+  });
+};
+var certDone=false;
+$("btnCert").onclick=function(){
+  if(certDone)return;certDone=true;$("btnCert").disabled=true;
+  passed[5]=true;renderProgress(5);
+  var o=ORDERS[sel];
+  $("certBody").innerHTML="玩家："+escapeHtml($("bName").value.trim()||"B版玩家")+"<br>"+"訂單："+o.t+"（"+o.desc+" → 長 "+fmt(0,o.lx,o.lc)+"）<br>"+
+    "□ 降冪排列正確（"+status(ex.att,ex.hint)+"）<br>"+
+    "□ 缺項補零正確（"+status(rec.miss.att,rec.miss.hint)+"）<br>"+
+    "□ 餘式次數判斷正確（"+status(rec.find.att,rec.find.hint)+"）<br>"+
+    "□ 乘法驗算正確（"+status(rec.dist.att,rec.dist.hint)+"）<br>"+
+    "心得："+escapeHtml($("reflect").value.trim()||"（語音證據）");
+  $("certZone").classList.remove("hidden");
+  fb("fb5","good","🎓 證書頒發！這張證書記錄的是你的思考過程，不是分數。");
+  uploadB();
+};
+function escapeHtml(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+$("btnRestart").onclick=function(){location.reload();};
+renderProgress(0);
+</script>
+</body>
+</html>

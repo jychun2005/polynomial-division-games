@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>課堂戰情儀表板：A/B 版證據對比</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"Noto Sans TC","Microsoft JhengHei",sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;padding:20px}
+.container{max-width:900px;margin:0 auto}
+header{text-align:center;margin-bottom:16px}
+header h1{font-size:1.5rem}
+header p{color:#94a3b8;font-size:.9rem}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+@media(max-width:640px){.cards{grid-template-columns:1fr 1fr}}
+.stat{background:#1e293b;border-radius:14px;padding:14px;text-align:center}
+.stat .v{font-size:1.5rem;font-weight:900}
+.stat .k{font-size:.8rem;color:#94a3b8}
+.stat.a .v{color:#fbbf24}.stat.b .v{color:#34d399}
+.panel{background:#1e293b;border-radius:14px;padding:16px;margin-bottom:16px}
+.panel h2{font-size:1.1rem;margin-bottom:10px}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th,td{padding:8px;border-bottom:1px solid #334155;text-align:left;vertical-align:top}
+th{color:#94a3b8;font-weight:700}
+.ev{background:#0f172a;border-radius:10px;padding:10px 12px;margin:8px 0;font-size:.88rem;line-height:1.8}
+.ev b{color:#6ee7b7}
+.conclude{background:#422006;border:1px solid #f59e0b;border-radius:14px;padding:16px;line-height:1.9}
+button{cursor:pointer;border:none;border-radius:12px;padding:10px 22px;font-size:1rem;font-weight:800;background:#4f46e5;color:#fff}
+.note{font-size:.82rem;color:#94a3b8;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>📊 課堂戰情儀表板</h1>
+<p>同一批學生・先 A 版（巧克力花椰菜）後 B 版（結構型）・證據對比</p>
+</header>
+<div class="cards">
+<div class="stat a"><div class="v" id="cA">–</div><div class="k">A 版人次</div></div>
+<div class="stat a"><div class="v" id="cAacc">–</div><div class="k">A 版平均答對率</div></div>
+<div class="stat b"><div class="v" id="cB">–</div><div class="k">B 版人次</div></div>
+<div class="stat b"><div class="v" id="cBatt">–</div><div class="k">B 版平均總嘗試</div></div>
+</div>
+<div class="panel">
+<h2>🅰️ A 版留下了什麼：只有分數</h2>
+<table><thead><tr><th>玩家</th><th>分數</th><th>答對率</th><th>連擊</th><th>用時</th></tr></thead><tbody id="bodyA"><tr><td colspan="5">讀取中…</td></tr></tbody></table>
+</div>
+<div class="panel">
+<h2>🅱️ B 版留下了什麼：過程證據</h2>
+<div id="bodyB">讀取中…</div>
+</div>
+<div class="conclude" id="conclude">讀取中…</div>
+<p style="text-align:center;margin-top:14px"><button id="btnReload">🔄 重新整理</button></p>
+<p class="note" id="status" style="text-align:center"></p>
+</div>
+<script>
+var SB_URL="https://mbhdtwxmhxsaxwosjnrw.supabase.co";
+var SB_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iaGR0d3htaHhzYXh3b3NqbnJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzMzIwMTEsImV4cCI6MjA5ODkwODAxMX0.UyhFIDVD30Qc3kzU4SnkQIpLLCPkREjz3ptQkoa300c";
+function H(){return{"apikey":SB_ANON,"Authorization":"Bearer "+SB_ANON};}
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function get(path){
+  return fetch(SB_URL+"/rest/v1/"+path,{headers:H()}).then(function(r){if(!r.ok)throw new Error("db"+r.status);return r.json();});
+}
+function load(){
+  $("status").textContent="讀取中…";
+  Promise.all([
+    get("game_sessions?game_version=eq.A&select=player_name,score,accuracy,max_combo,total_time_s&order=created_at.desc&limit=50"),
+    get("game_sessions?game_version=eq.B&select=id,player_name,order_id,reflection_text,created_at&order=created_at.desc&limit=50"),
+    get("game_events?select=session_id,station,attempts,hints,status&order=created_at.desc&limit=200")
+  ]).then(function(res){render(res[0],res[1],res[2]);$("status").textContent="已更新："+new Date().toLocaleTimeString();})
+  .catch(function(){$("status").textContent="⚠️ 讀取失敗（離線或網路問題）。";});
+}
+function $(id){return document.getElementById(id);}
+function render(aRows,bRows,evs){
+  $("cA").textContent=aRows.length;
+  var acc=aRows.filter(function(r){return r.accuracy!=null;});
+  $("cAacc").textContent=acc.length?Math.round(acc.reduce(function(s,r){return s+Number(r.accuracy);},0)/acc.length)+"%":"–";
+  $("cB").textContent=bRows.length;
+  var evBy={};
+  evs.forEach(function(e){(evBy[e.session_id]=evBy[e.session_id]||[]).push(e);});
+  var tot=0;Object.keys(evBy).forEach(function(k){evBy[k].forEach(function(e){tot+=e.attempts;});});
+  var nSess=Object.keys(evBy).length;
+  $("cBatt").textContent=nSess?Math.round(tot/nSess*10)/10+" 次／人":"–";
+  var ta=$("bodyA");
+  if(!aRows.length){ta.innerHTML='<tr><td colspan="5">尚無資料</td></tr>';}
+  else{ta.innerHTML="";aRows.forEach(function(r){
+    var tr=document.createElement("tr");
+    tr.innerHTML="<td>"+esc(r.player_name)+"</td><td>"+r.score+"</td><td>"+(r.accuracy==null?"–":r.accuracy+"%")+"</td><td>x"+r.max_combo+"</td><td>"+(r.total_time_s==null?"–":r.total_time_s+"s")+"</td>";
+    ta.appendChild(tr);
+  });}
+  var bb=$("bodyB");bb.innerHTML="";
+  if(!bRows.length){bb.textContent="尚無資料";}
+  bRows.forEach(function(s){
+    var d=document.createElement("div");d.className="ev";
+    var h="<b>"+esc(s.player_name)+"</b>・"+esc(s.order_id)+"・心得："+esc(s.reflection_text||"（無）");
+    (evBy[s.id]||[]).forEach(function(e){
+      h+="<br>　"+esc(e.station)+"：嘗試 "+e.attempts+" 次／提示 "+e.hints+" 次（"+esc(e.status)+"）";
+    });
+    if(!(evBy[s.id]||[]).length)h+="<br>　（尚無分站紀錄）";
+    d.innerHTML=h;bb.appendChild(d);
+  });
+  $("conclude").innerHTML="💡 對比結論：A 版告訴你「誰幾分」（分數＋答對率），B 版告訴你「卡在哪」（各站嘗試＋提示次數）。"+
+    "同一批母題，兩種遊戲量到的東西完全不一樣——這就是「巧克力花椰菜」vs「結構型」的差別。";
+}
+$("btnReload").onclick=load;
+load();
+</script>
+</body>
+</html>

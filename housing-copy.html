@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏠 房仲大師：FB/IG 房屋行銷文案生成器</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"Noto Sans TC","Microsoft JhengHei",sans-serif;background:#f3f4f6;color:#1f2937;min-height:100vh;padding:24px}
+.container{max-width:1080px;margin:0 auto}
+header{text-align:center;margin-bottom:24px}
+header h1{font-size:1.7rem;margin-bottom:6px}
+header p{color:#6b7280}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:#fff;border-radius:16px;padding:20px;box-shadow:0 4px 16px rgba(0,0,0,.06)}
+.card h2{font-size:1.1rem;margin-bottom:14px}
+label{display:block;font-size:.9rem;font-weight:600;margin:12px 0 6px}
+label:first-of-type{margin-top:0}
+input,textarea{width:100%;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:.95rem;font-family:inherit;outline:none}
+input:focus,textarea:focus{border-color:#3b82f6}
+textarea{resize:vertical;min-height:60px}
+.hint{font-size:.78rem;color:#9ca3af;margin-top:4px;font-weight:400}
+.btn-row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+button{cursor:pointer;border:none;border-radius:10px;padding:11px 18px;font-size:.95rem;font-weight:700}
+.btn-primary{background:#2563eb;color:#fff;flex:1}
+.btn-primary:hover{background:#1d4ed8}
+.btn-secondary{background:#e5e7eb;color:#374151}
+.btn-secondary:hover{background:#d1d5db}
+.output-tabs{display:flex;gap:8px;margin-bottom:12px}
+.tab{padding:8px 20px;border-radius:999px;background:#e5e7eb;color:#4b5563;font-size:.9rem}
+.tab.active{background:#111827;color:#fff}
+.output-box{white-space:pre-wrap;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:16px;font-size:.9rem;line-height:1.7;max-height:520px;overflow:auto}
+.copy-row{display:flex;gap:8px;margin-top:12px}
+.btn-copy{background:#10b981;color:#fff;flex:1}
+.btn-copy:hover{background:#059669}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 22px;border-radius:999px;font-size:.9rem;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+.example-link{font-size:.8rem;color:#2563eb;cursor:pointer;text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>🏠 房仲大師：FB / IG 房屋行銷文案生成器</h1>
+<p>輸入房屋資訊，一鍵生成吸睛文案！ <span class="example-link" onclick="fillExample()">填入範例</span></p>
+</header>
+<div class="grid">
+<div class="card">
+<h2>✏️ 房屋資訊輸入</h2>
+<label>✨ 房屋亮點一句話</label>
+<input id="title_keyword" placeholder="例：高樓層採光三房 / 捷運站走路3分鐘">
+<label>💰 售價</label>
+<input id="price" placeholder="例：1,580 萬">
+<label>🛏️ 格局</label>
+<input id="layout" placeholder="例：3 房 2 廳 2 衛">
+<label>📍 區域 / 地段</label>
+<input id="location" placeholder="例：板橋區近新埔捷運站">
+<label>🌟 核心優勢<div class="hint">請用逗號隔開，例：全新裝潢,採光極佳,明星學區</div></label>
+<input id="features" placeholder="例：全新裝潢,採光極佳,明星學區">
+<label>🏪 生活機能</label>
+<textarea id="life_function" placeholder="例：樓下就是超商、近傳統市場與全聯"></textarea>
+<label>📞 聯絡方式 / LINE ID</label>
+<input id="contact_info" placeholder="例：0912-345-678 / @house123">
+<div class="btn-row">
+<button class="btn-primary" onclick="generate()">🚀 生成文案</button>
+<button class="btn-secondary" onclick="clearAll()">清除</button>
+</div>
+</div>
+<div class="card">
+<h2>📄 生成結果</h2>
+<div class="output-tabs">
+<button class="tab active" id="tab-fb" onclick="switchTab('fb')">Facebook</button>
+<button class="tab" id="tab-ig" onclick="switchTab('ig')">Instagram</button>
+</div>
+<div class="output-box" id="output">尚未生成，請先輸入資訊並點擊「生成文案」。</div>
+<div class="copy-row">
+<button class="btn-copy" onclick="copyResult()">📋 一鍵複製</button>
+</div>
+</div>
+</div>
+</div>
+<div class="toast" id="toast">已複製！</div>
+<script>
+let currentTab='fb', fbCopy='', igCopy='';
+function fillExample(){
+document.getElementById('title_keyword').value='高樓層採光三房｜捷運站走路3分鐘';
+document.getElementById('price').value='1,580 萬';
+document.getElementById('layout').value='3 房 2 廳 2 衛';
+document.getElementById('location').value='板橋區近新埔捷運站';
+document.getElementById('features').value='全新裝潢,採光極佳,明星學區';
+document.getElementById('life_function').value='樓下就是超商、近傳統市場與全聯，交通生活一次到位';
+document.getElementById('contact_info').value='0912-345-678 / LINE: @house123';
+generate();
+}
+function clearAll(){
+['title_keyword','price','layout','location','features','life_function','contact_info'].forEach(id=>document.getElementById(id).value='');
+fbCopy='';igCopy='';
+document.getElementById('output').textContent='尚未生成，請先輸入資訊並點擊「生成文案」。';
+}
+function switchTab(t){
+currentTab=t;
+document.getElementById('tab-fb').classList.toggle('active',t==='fb');
+document.getElementById('tab-ig').classList.toggle('active',t==='ig');
+render();
+}
+function render(){
+const txt = currentTab==='fb'?fbCopy:igCopy;
+document.getElementById('output').textContent = txt || '尚未生成，請先輸入資訊並點擊「生成文案」。';
+}
+function generate(){
+const v=id=>document.getElementById(id).value.trim();
+const title_keyword=v('title_keyword')||'優質好房';
+const price=v('price')||'歡迎來電洽詢';
+const layout=v('layout')||'詳見說明';
+const location=v('location')||'精華地段';
+const life_function=v('life_function')||'生活機能便利，歡迎預約賞屋親身體驗';
+const contact_info=v('contact_info')||'歡迎私訊預約';
+const feature_list=v('features').split(/[,，、]/).map(s=>s.trim()).filter(Boolean);
+const feature_stars=feature_list.length?feature_list.map(f=>'⭐️ '+f).join('\n'):'⭐️ 格局方正，採光通風俱佳';
+const feature_tags=feature_list.map(f=>'#'+f.replace(/\s+/g,'')).join(' ');
+const layoutTag=(layout.match(/(\d+\s*房)/)||['','好房'])[1].replace(/\s+/g,'')||'好房';
+
+fbCopy=
+`【🔥 嚴選好房推薦 🔥｜${title_keyword}】
+
+成家夢想不遠，這間錯過真的可惜！
+不論是首購族、換屋族，還是想要給家人更好生活環境的您，這間房子絕對值得您親自來看看。
+
+🏡【房屋基本資料】
+• 總價：${price}
+• 格局：${layout}
+• 位置：${location}
+
+✨【物件核心優勢】
+${feature_stars}
+
+🏪【生活機能與交通】
+${life_function}
+
+好的房子一眨眼就賣掉了，與其在網路上看照片，不如直接約我看房，親身感受房子的溫度與氣場！
+
+歡迎預約賞屋，由我來為您貼心服務：
+📞 聯絡電話/LINE：${contact_info}
+（貼心提醒：請直接私訊或致電，留言容易漏掉訊息喔！）`;
+
+igCopy=
+`✨ 買房看這裡！【 ${title_keyword} 】✨
+
+如果你正在找這樣的房子，請趕快收藏 + 點愛心 ❤️
+
+💰 售價：${price}
+🛏️ 格局：${layout}
+📍 位置：${location}
+
+這間房子的亮點多到寫不完：
+${feature_stars}
+
+🎈 生活超便利：${life_function}
+
+看照片不如看現場，心動不如趕快行動！
+手刀小盒子 DM 預約，或直接聯絡我吧 📲
+
+聯絡方式：${contact_info}
+
+---
+#買房 #賣房 #房仲經紀人 #${location.slice(0,3)}買房 #${layoutTag} ${feature_tags} #優質好房 #成家圓夢 #房屋仲介 #歡迎賞屋`;
+render();
+}
+function copyResult(){
+const txt=currentTab==='fb'?fbCopy:igCopy;
+if(!txt){toast('請先生成文案');return;}
+navigator.clipboard.writeText(txt).then(()=>toast('✅ '+(currentTab==='fb'?'FB':'IG')+' 文案已複製！')).catch(()=>{
+const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();toast('✅ 文案已複製！');
+});
+}
+function toast(msg){
+const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800);
+}
+</script>
+</body>
+</html>
