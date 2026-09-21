@@ -29,4 +29,4 @@
 
 ## 🕐 最後更新
 
-- 2026-09-21，Muse Spark @ DESKTOP-CCY，Git push：✅ 已推（AGENTS.md 遠端行修改待下一輪 commit）。
+- 2026-09-21，Muse Spark @ DESKTOP-CCY，Git push：✅ 已推（`ff0b9ec`）。
