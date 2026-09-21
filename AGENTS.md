@@ -16,7 +16,8 @@
 - `polynomial-division-game-B.html`：B 版遊戲（結構型，單檔，已接 DB 上傳）。
 - `classroom-dashboard.html`：課堂戰情儀表板（讀 DB，即時呈現 A/B 證據對比，教師投影用）。
 - `handoff.md`：跨對話／跨電腦交接檔（收工必寫，開工必讀）。
-- 本目錄非 git repo（2026-09-21 確認），無 L2 同步。
+- 本目錄已是 git repo（2026-09-21 建，首 commit `c623855`，L2 生效；尚無遠端，push 待設 remote 後再推）。
+- L3：Obsidian `my-classroom-tools/專案工作流程.md`（詳細紀錄：決策＋踩坑，收工寫、開工按需讀）。
 
 ## 2. Supabase 連線（已完成）
 
