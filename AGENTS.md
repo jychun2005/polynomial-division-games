@@ -7,6 +7,7 @@
 - 2026-09-20：建立檔案；記入 Supabase 連線、資料庫現況、遊戲化評量理念、八年級多項式除法規劃。
 - 2026-09-21（收工）：A/B 版遊戲完成並接上 DB（匿名寫入實測通過）；`handoff.md` 建立，詳見交接檔。
 - 2026-09-21（收工）：B 版具名＋A 版 DB 即時排行＋課堂戰情儀表板完成；修 saveBoard 缺括號 bug；儀表板數據層實測通過。
+- 2026-09-21（收工）：git init＋兩 commits、L3 筆記建檔、DB 測試列清空、GitHub 公開 repo 已 push。
 
 ## 1. 專案目錄現況
 
@@ -16,7 +17,7 @@
 - `polynomial-division-game-B.html`：B 版遊戲（結構型，單檔，已接 DB 上傳）。
 - `classroom-dashboard.html`：課堂戰情儀表板（讀 DB，即時呈現 A/B 證據對比，教師投影用）。
 - `handoff.md`：跨對話／跨電腦交接檔（收工必寫，開工必讀）。
-- 本目錄已是 git repo（2026-09-21 建，首 commit `c623855`，L2 生效；尚無遠端，push 待設 remote 後再推）。
+- 本目錄已是 git repo（2026-09-21 建，首 commit `c623855`，L2 生效；遠端 `https://github.com/jychun2005/polynomial-division-games`（公開），已 push，追蹤 `origin/master`）。
 - L3：Obsidian `my-classroom-tools/專案工作流程.md`（詳細紀錄：決策＋踩坑，收工寫、開工按需讀）。
 
 ## 2. Supabase 連線（已完成）
